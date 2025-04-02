@@ -14,7 +14,7 @@ error = 0.005;% define the minimal error
 
 blades_number = 3; %blades_number动量法中没有意义
 
-rpm = 9000; %rotation speed
+rpm = 6000; %rotation speed
 
 height = 0.10; %designed height of duct
 
@@ -22,7 +22,7 @@ skin = 1.2 / 1000;
 
 materia_denisty = 1200;
 
-thick_factor = 1.2;
+thick_factor = 1.2;%初始1.2
 
 Weight_ratio0 = 10;%迭代精度初始化
 
@@ -30,9 +30,9 @@ k = 1;
 
 enduranceTime=0.1; %设计续航时间h
 
-eff=4;%力效g/w,越高越好
+eff=6;%力效g/w,越高越好
 
-weightpayload = 0.15; %载荷重量kg
+weightpayload = 0.3; %载荷重量kg
 
 otherweightfactor = 0.1; %其他项目占比
 
@@ -50,12 +50,12 @@ i= 1;
 for D_rotor = 0.05:0.001:0.4 %search space and step size
 
 R_rotor = D_rotor/2; %Blade length (m)
+
 A_1 = pi * R_rotor^2; %Blade Disk Area (m/s)
+
 A_2 = 1.0 * A_1; %Duct Output Area
 
 rho = 1.25; %sealevel denisity (kg/m³)
-
-
 
 %Fluid Velocity
 V_0 = 0; %Forward Velocity
@@ -78,13 +78,22 @@ K_u = 0.0060715 * n_s + 0.97143; %A ration parameter no meaning
 
 D = (60 * K_u * sqrt(2*P_tF/rho))/(pi * rpm);
 
+
 if D_rotor - D  < error
+
    D_good = D_rotor;
+
    D_good2 = D;
+
    V_FIANL = V_1;
+
 end
-   i= i+1;
+
+convergenceRecorder(k,1)= D_good - D_rotor;
+   
 end
+
+convergence = D_good - D_rotor;
 
 Weight_stru = D_good * pi * height * thick_factor * 2 * skin * materia_denisty;
 
@@ -104,7 +113,9 @@ Weight_ratio_recorder(k,3) = Weight_take_off;
 
 Weight_ratio_recorder(k,4) = weightbattery;
 
-Weight_ratio_recorder(k,5) = D_good;
+Weight_ratio_recorder(k,5) = D_good2;
+
+Weight_ratio_recorder(k,6) = Weight_take_off-weight_guess;
 
 if Weight_ratio < Weight_ratio0
 
@@ -114,7 +125,7 @@ if Weight_ratio < Weight_ratio0
 
     Weight_ratio0 =  Weight_ratio; %renew the ratio
 
-    fanal_D_good = D_good;
+    final_D_good = D_good;
 
     finalBatt = weightbattery;
 
@@ -128,7 +139,7 @@ end
 
 final_weight_guess
 
-fanal_D_good
+final_D_good
 
 finalBatt
 
@@ -136,3 +147,20 @@ finalpowerweight
 
 finalmaxpower
 
+%% 绘制收敛图像（Weight Guess vs Weight Ratio Error）
+figure;
+plot(Weight_ratio_recorder(:,2), Weight_ratio_recorder(:,1), 'o-', 'LineWidth', 1.5);
+grid on;
+xlabel('Weight Guess (kg)', 'FontSize', 12);
+ylabel('Weight Ratio Error', 'FontSize', 12);
+title('Iteration Convergence of Takeoff Weight Estimation', 'FontSize', 14);
+%% 绘制重量估算误差收敛图像
+figure;
+plot(Weight_ratio_recorder(:,2), Weight_ratio_recorder(:,6), '^-', ...
+    'LineWidth', 1.5, 'Color', [0.85 0.33 0.1]);
+grid on;
+
+xlabel('Weight Guess (kg)', 'FontSize', 12);
+ylabel('Weight Error (kg)', 'FontSize', 12);
+title('Convergence of Takeoff Weight Estimation', 'FontSize', 14);
+set(gca, 'FontSize', 11);
